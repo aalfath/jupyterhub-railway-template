@@ -1,0 +1,36 @@
+#!/bin/sh
+# Create the UNIX account JupyterHub's LocalProcessSpawner runs a user's server as.
+# Called by LocalAuthenticator.add_user_cmd with the username as the last argument.
+# /etc/passwd is rebuilt on every deploy but the home folders live on the volume,
+# so an existing home folder keeps its owner's uid: files never change hands.
+set -eu
+name=$(printf '%s' "$*" | awk '{print $NF}')
+root=${JUPYTERHUB_HOME_ROOT:-/data/home}
+home="$root/$name"
+case "$name" in
+  ''|*/*|.*) echo "jh-adduser: refusing username '$name'" >&2; exit 1 ;;
+esac
+exec 9>/run/jh-adduser.lock
+flock 9
+if getent passwd "$name" >/dev/null; then
+  uid=$(getent passwd "$name" | cut -d: -f3)
+  [ "$uid" -ge 2000 ] && exit 0
+  echo "jh-adduser: '$name' is a system account" >&2; exit 1
+fi
+if [ -d "$home" ]; then
+  uid=$(stat -c %u "$home")
+  if [ "$uid" -lt 2000 ]; then echo "jh-adduser: $home has a system owner" >&2; exit 1; fi
+else
+  # next free uid >= 2000 that no account and no home folder on the volume uses
+  uid=2000
+  used=$( (getent passwd | cut -d: -f3; find "$root" -mindepth 1 -maxdepth 1 -printf '%U\n' 2>/dev/null) | sort -n -u)
+  while printf '%s\n' "$used" | grep -qx "$uid" || getent group "$uid" >/dev/null; do uid=$((uid + 1)); done
+fi
+getent group "$name" >/dev/null || groupadd -g "$uid" "$name" 2>/dev/null || groupadd "$name"
+if [ -d "$home" ]; then
+  useradd -M -u "$uid" -g "$name" -d "$home" -s /bin/bash "$name"
+else
+  useradd -m -k /etc/skel -u "$uid" -g "$name" -d "$home" -s /bin/bash "$name"
+  chmod 0750 "$home"
+fi
+echo "jh-adduser: $name uid=$uid home=$home"
