@@ -1,0 +1,5 @@
+#!/bin/sh
+# Start a user's JupyterLab server. Its kernels inherit a high OOM score, so a
+# notebook that runs out of memory loses its kernel, not the hub.
+echo 800 > /proc/self/oom_score_adj 2>/dev/null || true
+exec /srv/venv/bin/jupyterhub-singleuser "$@"

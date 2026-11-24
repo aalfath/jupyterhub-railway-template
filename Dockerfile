@@ -24,6 +24,7 @@ RUN pip install --no-compile -r /tmp/requirements.txt -c /tmp/constraints.txt \
 COPY skel/ /etc/skel/
 COPY jupyterhub_config.py /srv/jupyterhub/jupyterhub_config.py
 COPY --chmod=0755 jh-adduser /usr/local/bin/jh-adduser
+COPY --chmod=0755 jh-singleuser /usr/local/bin/jh-singleuser
 COPY --chmod=0755 start.sh /usr/local/bin/jupyterhub-railway-start
 
 # The image's default "ubuntu" user (uid 1000) is not a hub user.

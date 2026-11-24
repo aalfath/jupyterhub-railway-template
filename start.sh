@@ -14,6 +14,9 @@ mkdir -p "$DATA/hub" "$DATA/home"
 chmod 0700 "$DATA/hub"
 chmod 0755 "$DATA" "$DATA/home"
 cd /srv/jupyterhub
+# Under memory pressure the kernel's OOM killer should pick a notebook kernel,
+# never the hub or the proxy (user servers raise their own score again).
+echo -500 > /proc/self/oom_score_adj 2>/dev/null || true
 jupyterhub -f /srv/jupyterhub/jupyterhub_config.py "$@" || rc=$?
 rc=${rc:-0}
 # A clean exit that wasn't asked for (no SIGTERM) still has to restart the service.

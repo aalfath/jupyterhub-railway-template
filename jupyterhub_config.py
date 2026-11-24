@@ -138,6 +138,7 @@ class RailwaySpawner(LocalProcessSpawner):
 
 
 c.JupyterHub.spawner_class = RailwaySpawner
+c.Spawner.cmd = ["/usr/local/bin/jh-singleuser"]
 c.Spawner.default_url = "/lab"
 c.Spawner.notebook_dir = "~"
 c.Spawner.start_timeout = 180
